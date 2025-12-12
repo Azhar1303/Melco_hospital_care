@@ -43,7 +43,9 @@ class AppointmentSchedulerAgent:
         ref.set({
             "patient_id": user_id,
             "doctor_user_id": doctor["doctor_user_id"],
+            "doctor_name": doctor["doctor_name"],  # Store name directly
             "hospital_id": hospital["id"],
+            "hospital_name": hospital["hospital_name"],  # Store name directly
             "department": department,
             "time": preferred_time,
             "status": "pending",

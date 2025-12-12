@@ -437,13 +437,20 @@ Return JSON only:
     # -----------------------------------------------------------
     def _extract_booking_fields(self, message: str) -> Dict[str, Any]:
         prompt = f"""
-Extract ONLY JSON fields:
-- symptoms
-- preferred_time
+Extract ONLY JSON fields from this message:
+- symptoms: health issues mentioned (headache, fever, pain, etc.)
+- preferred_time: when user wants appointment (today, tomorrow, morning, evening, 3pm, next week, etc.)
+
+IMPORTANT EXAMPLES:
+- "book for today" => preferred_time: "today"
+- "appointment tomorrow" => preferred_time: "tomorrow"
+- "I want to see a doctor now" => preferred_time: "today"
+- "visit at 3pm" => preferred_time: "3pm"
+- "morning slot" => preferred_time: "morning"
 
 Message: {message}
 
-Return JSON only.
+Return JSON only. Extract ANY time reference as preferred_time.
 """
         try:
             res = self.llm.invoke([HumanMessage(content=prompt)])
@@ -452,12 +459,34 @@ Return JSON only.
             end = raw.rfind("}") + 1
             data = json.loads(raw[start:end])
         except:
-            return {}
+            data = {}
 
         cleaned = {}
         for k, v in data.items():
             if isinstance(v, str):
                 cleaned[k] = v.strip()
+
+        # FALLBACK: Direct keyword detection for time if LLM missed it
+        if not cleaned.get("preferred_time"):
+            msg_lower = message.lower()
+            TIME_KEYWORDS = {
+                "today": "today",
+                "tomorrow": "tomorrow",
+                "now": "today",
+                "right now": "today",
+                "this morning": "morning",
+                "this evening": "evening",
+                "morning": "morning",
+                "evening": "evening",
+                "afternoon": "afternoon",
+                "tonight": "evening",
+                "asap": "today",
+                "as soon as possible": "today",
+            }
+            for keyword, value in TIME_KEYWORDS.items():
+                if keyword in msg_lower:
+                    cleaned["preferred_time"] = value
+                    break
 
         return cleaned
 
