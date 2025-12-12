@@ -102,25 +102,50 @@ def get_patient_appointments(patient_id: str):
 
         appt["id"] = d.id
 
-        # Resolve Hospital Name
-        hosp_id = appt.get("hospital_id")
-        if hosp_id:
-            hosp_ref = db.collection("hospitals").document(str(hosp_id)).get()
-            appt["hospital_name"] = (
-                hosp_ref.to_dict().get("hospital_name") if hosp_ref.exists else "Unknown"
-            )
+        # Resolve Hospital Name (use stored name first, then fallback to ID lookup)
+        if appt.get("hospital_name"):
+            pass  # Already has name stored
         else:
-            appt["hospital_name"] = "Unknown"
+            hosp_id = appt.get("hospital_id")
+            if hosp_id:
+                hosp_ref = db.collection("hospitals").document(str(hosp_id)).get()
+                appt["hospital_name"] = (
+                    hosp_ref.to_dict().get("hospital_name") if hosp_ref.exists else "Unknown Hospital"
+                )
+            else:
+                appt["hospital_name"] = "Unknown Hospital"
 
-        # Resolve Doctor Name
-        doc_id = appt.get("doctor_user_id")
-        if doc_id:
-            doc_ref = db.collection("users").document(str(doc_id)).get()
-            appt["doctor_name"] = (
-                doc_ref.to_dict().get("name") if doc_ref.exists else "Unknown"
-            )
+        # Resolve Doctor Name (use stored name first, then fallback to ID lookup)
+        if appt.get("doctor_name"):
+            pass  # Already has name stored
         else:
-            appt["doctor_name"] = "Unknown"
+            doc_id = appt.get("doctor_user_id")
+            if doc_id:
+                # First try to get from users collection
+                doc_ref = db.collection("users").document(str(doc_id).strip()).get()
+                if doc_ref.exists:
+                    appt["doctor_name"] = doc_ref.to_dict().get("name", "Unknown Doctor")
+                else:
+                    # Try to find in hospital's specialist_available
+                    hosp_id = appt.get("hospital_id")
+                    if hosp_id:
+                        hosp_ref = db.collection("hospitals").document(str(hosp_id)).get()
+                        if hosp_ref.exists:
+                            specialists = hosp_ref.to_dict().get("specialist_available", [])
+                            doctor_found = False
+                            for spec in specialists:
+                                if spec.get("doctor_user_id") == doc_id.strip():
+                                    appt["doctor_name"] = spec.get("doctor_name", "Unknown Doctor")
+                                    doctor_found = True
+                                    break
+                            if not doctor_found:
+                                appt["doctor_name"] = "Unknown Doctor"
+                        else:
+                            appt["doctor_name"] = "Unknown Doctor"
+                    else:
+                        appt["doctor_name"] = "Unknown Doctor"
+            else:
+                appt["doctor_name"] = "Unknown Doctor"
 
         results.append(appt)
 
