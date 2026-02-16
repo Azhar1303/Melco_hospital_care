@@ -403,9 +403,9 @@ This project is licensed under the MIT License.
 
 ## 📞 Contact
 
-**Author:** soumysuwas  
-**Email:** soumy.suwas7@gmail.com  
-**GitHub:** [@soumysuwas](https://github.com/soumysuwas)
+**Authors :** soumysuwas, Azhar1303  
+**Email:** soumy.suwas7@gmail.com, mdazharkhan704@gmail.com
+**GitHub:** [@soumysuwas](https://github.com/soumysuwas), [@Azhar1303](https://github.com/Azhar1303)
 
 ---
 
